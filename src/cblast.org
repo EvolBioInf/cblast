@@ -1,0 +1,325 @@
+#+begin_src latex
+  \section{Introduction}
+  The results of a Blast search tell us which regions are similar
+  between a query sequence and a subject sequence. Here we focus on the
+  converse, the regions without homology, which we get by complementing
+  the Blast results, hence the name of our program, \ty{cblast}.
+
+  The input to \ty{cblast} consists of Blast hits, one per line. Each line
+  in turn consists of five columns, chromosome, fragment start, fragment
+  end, hit start, and hit end. Coordinates are one-based and intervals
+  are inclusive. Fragment intervals are with respect to the chromosome
+  start, while hit intervals end are with respect to the fragment start.
+
+  Table~\ref{tab:cb}A shows some example input, which is visualized in
+  Figure~\ref{fig:cb}. The program \ty{cblast} removes the Blast hits
+  from the interval on chromosome 17 and returns their complement, the
+  three regions listed in Table~\ref{fig:cb}B.
+
+  \begin{table}
+    \caption{Example input (\textbf{A}) and output (\textbf{B}) for
+      \ty{rmh}.}\label{tab:cb}
+    \begin{center}
+    \begin{tabular}{c|c}
+      \textbf{A} & \textbf{B}\\
+      \begin{tabular}{lrrrr}
+	chr17 & 10 & 23 & 1 & 2\\
+	chr17 & 10 & 23 & 5 & 7\\
+	chr17 & 10 & 23 & 9 & 10
+      \end{tabular}
+      &
+      \begin{tabular}{lrr}
+	chr17 & 12 & 13\\
+	chr17 & 17 & 17\\
+	chr17 & 20 & 23
+      \end{tabular}
+    \end{tabular}
+    \end{center}
+  \end{table}
+
+  \begin{figure}
+    \begin{center}
+      \include{cblastFig}
+    \end{center}
+    \caption{Cartoon of the example data in
+      Table~\ref{tab:cb}A.}\label{fig:cb}
+  \end{figure}
+
+  Note that in the example the intervals are ordered with respect to hit
+  start, but \ty{cblast} should make no assumption about the ordering
+  either of the queries, or of the hits on them.
+
+  \section{Implementation}
+  The outline of \ty{cblast} contains hooks for imports, types, methods,
+  variables, functions, and the logic of the main function.
+#+end_src
+#+begin_src go <<cblast.go>>=
+  package main
+
+  import (
+	  //<<Imports>>
+  )
+  //<<Types>>
+  //<<Methods>>
+  //<<Variables>>
+  //<<Functions>>
+  func main() {
+	  //<<Main function>>
+  }
+#+end_src
+#+begin_src latex
+  In the main function we set the usage, declare the options, parse the
+  options, and parse the input files.
+#+end_src
+#+begin_src go <<Main function>>=
+  //<<Set usage>>
+  //<<Declare options>>
+  //<<Parse options>>
+  //<<Parse input files>>
+#+end_src
+#+begin_src latex
+  The usage consists of three parts, the actual usage message, an
+  explanation of the program's purpose, and an example command.
+#+end_src
+#+begin_src go <<Set usage>>=
+  u := "cblast [-h] [option]... [file]..."
+  p := "Complement Blast results."
+  e := "cblast -m 25 foo.txt"
+  clio.Usage(u, p, e)
+#+end_src
+#+begin_src latex
+  We import \ty{clio}.
+#+end_src
+#+begin_src go <<Imports>>=
+  "github.com/evolbioinf/clio"
+#+end_src
+#+begin_src latex
+  There are two options, the obligatory version and the minimum length
+  of the intervals returned.
+#+end_src
+#+begin_src go <<Declare options>>=
+  var optV = flag.Bool("v", false, "print program version " +
+	  "and other information")
+  var optM = flag.Int("m", 30, "minimum result length")
+#+end_src
+#+begin_src latex
+  We import \ty{flag}.
+#+end_src
+#+begin_src go <<Imports>>=
+  "flag"
+#+end_src
+#+begin_src latex
+  We parse the options and immediately respond to \ty{-v}, as this stops
+  the program.
+#+end_src
+#+begin_src go <<Parse options>>=
+  flag.Parse()
+  if *optV {
+	  n := "cblast"
+	  v := version
+	  d := date
+	  a := "Bernhard Haubold"
+	  e := "haubold@evolbio.mpg.de"
+	  l := "GNU General Public License, " +
+	  "https://www.gnu.org/licenses/gpl.html"
+	  clio.PrintInfo(n, v, d, a, e, l)
+  }
+#+end_src
+#+begin_src latex
+  The \ty{version} and \ty{date} we just referred to are injected at
+  compile time. To make this possible, we declare them global.
+#+end_src
+#+begin_src go <<Variables>>=
+  var version, date string
+#+end_src
+#+begin_src latex
+  We import \ty{clio}.
+#+end_src
+#+begin_src go <<Imports>>=
+  "github.com/evolbioinf/clio"
+#+end_src
+#+begin_src latex
+  The remaining tokens on the command line are taken as the names of
+  input files. Each of these files is parsed with the function
+  \ty{scan}, which takes as argument the minimum interval length.
+#+end_src
+#+begin_src go <<Parse input files>>=
+  files := flag.Args()
+  clio.ParseFiles(files, scan, *optM)
+#+end_src
+#+begin_src latex
+  Inside the function \ty{scan}, we first retrieve the minimum length by
+  type assertion. Then we store the all input data and when that's done
+  print the complement. The question is, how to store the data? The
+  example in Table~\ref{cb}A suggests that we concatenate chromosome,
+  start, and end to create an identifier for each query. This serves as
+  a key into two maps of intervals, \ty{queries} and \ty{hits}. The
+  first holds a single query intervals, the second the corresponding
+  Blast hits.
+#+end_src
+#+begin_src go <<Functions>>=
+  func scan(r io.Reader, args ...interface{}) {
+	  minLen := args[0].(int)
+	  var queries map[string]Interval
+	  var hits map[string][]Interval
+	  sc := bufio.NewScanner(r)
+	  for sc.Scan() {
+		  //<<Store data>>
+	  }
+	  //<<Print complement>>
+  }
+#+end_src
+#+begin_src latex
+  We import \ty{io} and \ty{bufio}.
+#+end_src
+#+begin_src go <<Imports>>=
+  "io"
+  "bufio"
+#+end_src
+#+begin_src latex
+  To store the data, we form the key for the maps from the first three
+  columns of data. If this key is new, we add a query. We
+  also add a Blast hit.
+#+end_src
+#+begin_src go <<Store data>>=
+  fields := strings.Fields(sc.Text())
+  k := fields[0] + fields[1] + fields[2]
+  if _, ok := queries[k]; !ok {
+	  //<<Add query>>
+  }
+  //<<Add hit>>
+#+end_src
+#+begin_src latex
+  We import \ty{strings}.
+#+end_src
+#+begin_src go <<Imports>>=
+  "strings"
+#+end_src
+#+begin_src latex
+  We convert the query start and end from the second and third fields we
+  just read.
+#+end_src
+#+begin_src go <<Add query>>=
+  qs, err := strconv.Atoi(fields[1])
+  if err != nil {
+	  log.Fatal(err.Error())
+  }
+  qe, err := strconv.Atoi(fields[2])
+  if err != nil {
+	  log.Fatal(err.Error())
+  }
+  i := Interval{Chr: fields[0], Start: qs, End: qe}
+  queries[k] = i
+#+end_src
+#+begin_src latex
+  We import \ty{strconv} and \ty{log}.
+#+end_src
+#+begin_src go <<Imports>>=
+  "strconv"
+  "log"
+#+end_src
+#+begin_src latex
+  As we just saw, an \ty{Interval} consists of a chromosome, a start and
+  an end, so we write the corresponding declaration.
+#+end_src
+#+begin_src go <<Types>>=
+  type Interval struct {
+	  Chr string
+	  Start, End int
+  }
+#+end_src
+#+begin_src latex
+  As shown in the example data in Table~\ref{tab:cb}A, the query is
+  located relative to the chromosome start, but the Blast relative to
+  the query start. To simplify the later complementation step, we store
+  the Blast hits in the same coordinates as the query. We do this by
+  adding the query start and subtracting one.
+#+end_src
+#+begin_src go <<Add hit>>=
+  bs, err := strconv.Atoi(fields[3])
+  if err != nil { log.Fatal(err.Error()) }
+  bs += queries[k].Start - 1
+  be, err := strconv.Atoi(fields[4])
+  if err != nil { log.Fatal(err.Error()) }
+  be += queries[k].Start - 1
+  i := Interval{Start: bs, End: be}
+  hits[k] = append(hits[k], i)
+#+end_src
+#+begin_src latex
+  To print the complement, we iterate over the keys, sort the hits, and
+  extract their complement. The columns in the result table are aligned
+  with a tab writer based on blank-separated columns.
+#+end_src
+#+begin_src go <<Print complement>>=
+  w := tabwriter.NewWriter(os.Stdout, 2, 1, 2, ' ', 0)
+  for k, query := range queries {
+	  ch := query.Chr
+	  qs := query.Start
+	  qe := query.End
+	  sort.Sort(Intervals(hits[k]))
+	  //<<Extract complement>>
+  }
+  w.Flush()
+#+end_src
+#+begin_src latex
+  We import \ty{tabwriter}, \ty{os}, and \ty{sort}.
+#+end_src
+#+begin_src go <<Imports>>=
+  "text/tabwriter"
+  "os"
+  "sort"
+#+end_src
+#+begin_src latex
+  We declare the type \ty{Intervals}.
+#+end_src
+#+begin_src go <<Types>>=
+  type Intervals []Interval
+#+end_src
+#+begin_src latex
+  Then we implement the methods \ty{Len}, \ty{Less}, and \ty{Swap} as
+  methods on \ty{Intervals}.
+#+end_src
+#+begin_src go <<Methods>>=
+  func (in Intervals) Len() int { return len(in) }
+  func (in Intervals) Less(i, j int) bool {
+	  return in[i].Start < in[j].Start
+  }
+  func (in Intervals) Swap(i, j int) {
+	  in[i], in[j] = in[j], in[i]
+  }
+#+end_src
+#+begin_src latex
+  We iterate over the sorted intervals to extract their complement,
+  except for the last interval.
+#+end_src
+#+begin_src go <<Extract complement>>=
+  fs := qs
+  for _, hit := range hits[k] {
+	  fe := hit.Start - 1
+	  l := fe - fs + 1
+	  if l >= minLen {
+		  fmt.Fprintf(w, "%s\t%d\t%d\t%d\t%d\n",
+			  ch, qs, qe, fs, fe)
+	  }
+	  fs = hit.End + 1
+  }
+  //<<Print the last interval>>
+#+end_src
+#+begin_src latex
+  We import \ty{fmt}.
+#+end_src
+#+begin_src go <<Imports>>=
+  "fmt"
+#+end_src
+#+begin_src latex
+  The last interval goes from the end of the last hit to the end of the
+  query.
+#+end_src
+#+begin_src go <<Print the last interval>>=
+  fs = hits[k][len(hits)-1].End + 1
+  l := qe - fs + 1
+  if l >= minLen {
+	  fmt.Fprintf(w, "%s\t%s\t%s\t%d\t%d\n",
+		  ch, qs, qe, fs, qe)
+  }
+#+end_src
