@@ -4,3 +4,4 @@ src/cblast
 doc/cblastDoc.*
 !doc/cblastDoc.tex
 doc/cblast.tex
+doc/*.aux

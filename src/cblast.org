@@ -1,27 +1,29 @@
 #+begin_src latex
   \section{Introduction}
-  The results of a Blast search tell us which regions are similar
-  between a query sequence and a subject sequence. Here we focus on the
-  converse, the regions without homology, which we get by complementing
-  the Blast results, hence the name of our program, \ty{cblast}.
+  The results of a Blast search tell us which regions that are similar
+  between a query and a subject. In the program \ty{cblast} we focus on
+  the complement, the regions without homology.
 
-  The input to \ty{cblast} consists of Blast hits, one per line. Each line
-  in turn consists of five columns, chromosome, fragment start, fragment
-  end, hit start, and hit end. Coordinates are one-based and intervals
-  are inclusive. Fragment intervals are with respect to the chromosome
-  start, while hit intervals end are with respect to the fragment start.
+  The input to \ty{cblast} consists of Blast hits, one per line. Each
+  line in turn consists of five columns, chromosome, fragment start,
+  fragment end, hit start, and hit end. Coordinates are one-based and
+  intervals are inclusive. Notice that fragment intervals are located
+  with respect to the chromosome start, while hit intervals are located
+  with respect to the fragment start.
 
   Table~\ref{tab:cb}A shows some example input, which is visualized in
-  Figure~\ref{fig:cb}. The program \ty{cblast} removes the Blast hits
-  from the interval on chromosome 17 and returns their complement, the
-  three regions listed in Table~\ref{fig:cb}B.
+  Figure~\ref{fig:cb}. There is one query interval on chromosome 17 that
+  stretches from 10 to 23. This interval has three Blast hits, $(1,2)$,
+  $(5,7)$, and $(9,10)$. The program \ty{cblast} removes the Blast hits
+  from the query and returns their complement, the three regions
+  $(12,13)$, $(17,17)$, and $(20,23)$ (Table~\ref{fig:cb}B).
 
   \begin{table}
     \caption{Example input (\textbf{A}) and output (\textbf{B}) for
-      \ty{rmh}.}\label{tab:cb}
+      \ty{cblast}.}\label{tab:cb}
     \begin{center}
     \begin{tabular}{c|c}
-      \textbf{A} & \textbf{B}\\
+      \textbf{A} & \textbf{B}\\\hline
       \begin{tabular}{lrrrr}
 	chr17 & 10 & 23 & 1 & 2\\
 	chr17 & 10 & 23 & 5 & 7\\
@@ -41,13 +43,13 @@
     \begin{center}
       \include{cblastFig}
     \end{center}
-    \caption{Cartoon of the example data in
-      Table~\ref{tab:cb}A.}\label{fig:cb}
+    \caption{Cartoon of the example \emph{query} and \emph{hits} listed in
+      Table~\ref{tab:cb}A, and of the \emph{results} listed in Table~\ref{tab:cb}B.}\label{fig:cb}
   \end{figure}
 
   Note that in the example the intervals are ordered with respect to hit
-  start, but \ty{cblast} should make no assumption about the ordering
-  either of the queries, or of the hits on them.
+  start, but \ty{cblast} should make no assumptions about the ordering
+  of its input.
 
   \section{Implementation}
   The outline of \ty{cblast} contains hooks for imports, types, methods,
@@ -94,8 +96,8 @@
   "github.com/evolbioinf/clio"
 #+end_src
 #+begin_src latex
-  There are two options, the obligatory version and the minimum length
-  of the intervals returned.
+  There are two options, the obligatory version (\ty{-v}) and the
+  minimum length (\ty{-m}) of the intervals returned.
 #+end_src
 #+begin_src go <<Declare options>>=
   var optV = flag.Bool("v", false, "print program version " +
@@ -149,19 +151,19 @@
 #+end_src
 #+begin_src latex
   Inside the function \ty{scan}, we first retrieve the minimum length by
-  type assertion. Then we store the all input data and when that's done
+  type assertion. Then we store the input data and when that's done
   print the complement. The question is, how to store the data? The
-  example in Table~\ref{cb}A suggests that we concatenate chromosome,
+  example in Table~\ref{tab:cb}A suggests that we concatenate chromosome,
   start, and end to create an identifier for each query. This serves as
   a key into two maps of intervals, \ty{queries} and \ty{hits}. The
-  first holds a single query intervals, the second the corresponding
+  first holds a single query interval, the second the corresponding
   Blast hits.
 #+end_src
 #+begin_src go <<Functions>>=
   func scan(r io.Reader, args ...interface{}) {
 	  minLen := args[0].(int)
-	  var queries map[string]Interval
-	  var hits map[string][]Interval
+	  queries := make(map[string]Interval)
+	  hits := make(map[string][]Interval)
 	  sc := bufio.NewScanner(r)
 	  for sc.Scan() {
 		  //<<Store data>>
@@ -178,8 +180,8 @@
 #+end_src
 #+begin_src latex
   To store the data, we form the key for the maps from the first three
-  columns of data. If this key is new, we add a query. We
-  also add a Blast hit.
+  data fields. If this key is new, we add a query. We also add a Blast
+  hit.
 #+end_src
 #+begin_src go <<Store data>>=
   fields := strings.Fields(sc.Text())
@@ -196,8 +198,7 @@
   "strings"
 #+end_src
 #+begin_src latex
-  We convert the query start and end from the second and third fields we
-  just read.
+  We convert the query start and end from the second and third fields.
 #+end_src
 #+begin_src go <<Add query>>=
   qs, err := strconv.Atoi(fields[1])
@@ -230,10 +231,10 @@
 #+end_src
 #+begin_src latex
   As shown in the example data in Table~\ref{tab:cb}A, the query is
-  located relative to the chromosome start, but the Blast relative to
-  the query start. To simplify the later complementation step, we store
-  the Blast hits in the same coordinates as the query. We do this by
-  adding the query start and subtracting one.
+  located relative to the chromosome start, but the Blast hit is located
+  relative to the query start. To simplify the later complementation
+  step, we store the Blast hits in the same coordinates as the query. We
+  do this by adding the query start and subtracting one.
 #+end_src
 #+begin_src go <<Add hit>>=
   bs, err := strconv.Atoi(fields[3])
@@ -290,7 +291,7 @@
 #+end_src
 #+begin_src latex
   We iterate over the sorted intervals to extract their complement,
-  except for the last interval.
+  except for the last interval, which is dealt with after the loop.
 #+end_src
 #+begin_src go <<Extract complement>>=
   fs := qs
@@ -316,10 +317,86 @@
   query.
 #+end_src
 #+begin_src go <<Print the last interval>>=
-  fs = hits[k][len(hits)-1].End + 1
+  i := len(hits[k]) - 1
+  fs = hits[k][i].End + 1
   l := qe - fs + 1
   if l >= minLen {
-	  fmt.Fprintf(w, "%s\t%s\t%s\t%d\t%d\n",
+	  fmt.Fprintf(w, "%s\t%d\t%d\t%d\t%d\n",
 		  ch, qs, qe, fs, qe)
   }
+#+end_src
+#+begin_src latex
+  We've finished writing \ty{cblast}, time to test it.
+  \section*{Testing}
+  The outline of our testing program provides hooks for imports and the
+  testing logic.
+#+end_src
+#+begin_src go <<cblast_test.go>>=
+  package main
+
+  import (
+	  "testing"
+	  //<<Testing imports>>
+  )
+
+  func TestCblast(t *testing.T) {
+	  //<<Testing>>
+  }
+#+end_src
+#+begin_src latex
+  Testing is done in two steps, we construct the tests and then loop
+  over them.
+#+end_src
+#+begin_src go <<Testing>>=
+  var tests []*exec.Cmd
+  //<<Construct tests>>
+  for i, test := range tests {
+	  //<<Carry our test>>
+  }
+#+end_src
+#+begin_src latex
+  We import \ty{exec}.
+#+end_src
+#+begin_src go <<Testing imports>>=
+  "os/exec"
+#+end_src
+#+begin_src latex
+  We carry out three tests. The first is on the small data set in
+  Table~\ref{tab:cb}A, contained in \ty{test1.txt}. The second is
+  similar, except that the chromosome name is changed and the first hit
+  is left out. That data is contained in \ty{test2.txt}. The third test
+  analyzes both data files. The minimum interval length is always 1.
+#+end_src
+#+begin_src go <<Construct tests>>=
+  f1 := "test1.txt"
+  f2 := "test2.txt"
+  test := exec.Command("./cblast", "-m", "1", f1)
+  tests = append(tests, test)
+  test = exec.Command("./cblast", "-m", "1", f2)
+  tests = append(tests, test)
+  test = exec.Command("./cblast", "-m", "1", f1, f2)
+  tests = append(tests, test)
+#+end_src
+#+begin_src latex
+  For each test we compare what we get with what we want, which is
+  contained in files \ty{r1.txt}, \ty{r2.txt}, and \ty{r3.txt}.
+#+end_src
+#+begin_src go <<Carry our test>>=
+  get, err := test.Output()
+  if err != nil { t.Error(err.Error()) }
+  f := "r" + strconv.Itoa(i + 1) + ".txt"
+  want, err := ioutil.ReadFile(f)
+  if err != nil { t.Error(err.Error()) }
+  if !bytes.Equal(get, want) {
+	  t.Errorf("get:\n%s\nwant:\n%s\n",
+		  string(get), string(want))
+  }
+#+end_src
+#+begin_src latex
+  We import \ty{strconv}, \ty{ioutil}, and \ty{bytes}.
+#+end_src
+#+begin_src go <<Testing imports>>=
+  "strconv"
+  "io/ioutil"
+  "bytes"
 #+end_src
