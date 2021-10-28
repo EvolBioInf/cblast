@@ -9,7 +9,8 @@
   fragment end, hit start, and hit end. Coordinates are one-based and
   intervals are inclusive. Notice that fragment intervals are located
   with respect to the chromosome start, while hit intervals are located
-  with respect to the fragment start.
+  with respect to the fragment start. Lines starting with a hash are
+  ignored.
 
   Table~\ref{tab:cb}A shows some example input, which is visualized in
   Figure~\ref{fig:cb}. There is one query interval on chromosome 17 that
