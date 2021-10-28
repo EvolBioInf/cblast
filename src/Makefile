@@ -6,7 +6,7 @@ EXE = cblast
 all: $(EXE)
 
 $(EXE): $(EXE).go
-	go build -ldflags "-X github.com/evolbioinf/rmh/main.version=$(VERSION) -X github.com/evolbioinf/rmh/main.date=$(DATE)" $(EXE).go
+	go build -ldflags "-X main.version=$(VERSION) -X main.date=$(DATE)" $(EXE).go
 $(EXE).go: $(EXE).org
 	bash ../scripts/org2nw $(EXE).org | notangle -R$(EXE).go | gofmt > $(EXE).go
 test: $(EXE) $(EXE)_test.go

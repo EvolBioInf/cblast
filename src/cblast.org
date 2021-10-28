@@ -117,15 +117,29 @@
 #+begin_src go <<Parse options>>=
   flag.Parse()
   if *optV {
-	  n := "cblast"
-	  v := version
-	  d := date
-	  a := "Bernhard Haubold"
-	  e := "haubold@evolbio.mpg.de"
-	  l := "GNU General Public License, " +
-	  "https://www.gnu.org/licenses/gpl.html"
-	  clio.PrintInfo(n, v, d, a, e, l)
+	  //<<Print version>>
+	  os.Exit(0)
   }
+#+end_src
+#+begin_src latex
+  We import \ty{os}.
+#+end_src
+#+begin_src go <<Imports>>=
+  "os"
+#+end_src
+#+begin_src latex
+  The version information consists of the name of the program, its
+  version and date, author, email address, and license.
+#+end_src
+#+begin_src go <<Print version>>=
+  n := "cblast"
+  v := version
+  d := date
+  a := "Bernhard Haubold"
+  e := "haubold@evolbio.mpg.de"
+  l := "GNU General Public License, " +
+	  "https://www.gnu.org/licenses/gpl.html"
+  clio.PrintInfo(n, v, d, a, e, l)
 #+end_src
 #+begin_src latex
   The \ty{version} and \ty{date} we just referred to are injected at
