@@ -1,4 +1,5 @@
 all:
+	test -d bin || mkdir bin
 	make -C src
 	cp src/cblast bin
 .PHONY: doc
