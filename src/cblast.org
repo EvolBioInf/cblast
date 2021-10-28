@@ -16,7 +16,9 @@
   stretches from 10 to 23. This interval has three Blast hits, $(1,2)$,
   $(5,7)$, and $(9,10)$. The program \ty{cblast} removes the Blast hits
   from the query and returns their complement, the three regions
-  $(12,13)$, $(17,17)$, and $(20,23)$ (Table~\ref{fig:cb}B).
+  $(12,13)$, $(17,17)$, and $(20,23)$ (Table~\ref{fig:cb}B). It also
+  prints the chromosome name and the start and end positions of the
+  query interval, essentially the query interval's name.
 
   \begin{table}
     \caption{Example input (\textbf{A}) and output (\textbf{B}) for
@@ -30,10 +32,10 @@
 	chr17 & 10 & 23 & 9 & 10
       \end{tabular}
       &
-      \begin{tabular}{lrr}
-	chr17 & 12 & 13\\
-	chr17 & 17 & 17\\
-	chr17 & 20 & 23
+      \begin{tabular}{lrrrr}
+	chr17 & 10 & 23 & 12 & 13\\
+	chr17 & 10 & 23 & 17 & 17\\
+	chr17 & 10 & 23 & 20 & 23
       \end{tabular}
     \end{tabular}
     \end{center}
@@ -193,11 +195,12 @@
   "bufio"
 #+end_src
 #+begin_src latex
-  To store the data, we form the key for the maps from the first three
-  data fields. If this key is new, we add a query. We also add a Blast
-  hit.
+  We interpret all lines that don't start with a hash as data. To store
+  the data, we form the key for the maps from the first three data
+  fields. If this key is new, we add a query. We also add a Blast hit.
 #+end_src
 #+begin_src go <<Store data>>=
+  if sc.Text()[0] == '#' { continue }
   fields := strings.Fields(sc.Text())
   k := fields[0] + fields[1] + fields[2]
   if _, ok := queries[k]; !ok {
